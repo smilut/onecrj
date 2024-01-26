@@ -1,0 +1,1 @@
+select count(*), min(timestamp), max(timestamp) from log_storage.simple_onec_log

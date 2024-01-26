@@ -1,0 +1,46 @@
+#transform.vrl
+
+structured, err = parse_regex(.message, r'^\{(?P<Date>\d{14}),(?P<TransactionStatus>\w),\s+\{(?P<TransactionID>.+?)\},(?P<User>\d+),(?P<Computer>\d+),(?P<Application>\d+),(?P<Connection>\d+),(?P<Event>\d+),(?P<Level>\w{1}),', numeric_groups: false)
+.unparsed, .replaceErr = replace(.message,  r'^\{(?P<Date>\d{14}),(?P<TransactionStatus>\w),\s+\{(?P<TransactionID>.+?)\},(?P<User>\d+),(?P<Computer>\d+),(?P<Application>\d+),(?P<Connection>\d+),(?P<Event>\d+),(?P<Level>\w{1}),', "")
+
+# записи не соответствующие шаблону пропускаем
+#
+if err != null {
+    abort
+}
+
+# описываем структуру хранения ЖР в ClickHouse
+.TransactionStatusName = ""
+.UserUUID = ""
+.UserName = ""
+.ComputerName = ""
+.ApplicationName = ""
+.EventName = ""
+.LevelName = ""
+.Comment = ""
+.Metadata = ""
+.MetadataUuid = ""
+.MetadataName = ""
+.Data = ""
+.DataType = ""
+.DataTypeName = ""
+.DataRef = ""
+.DataPresentation = ""
+.Server = ""
+.ServerName = ""
+.Port = ""
+.PortNumber = ""
+.SyncPort = ""
+.SyncPortNumber
+.Session = ""
+
+.errLUA = ""
+
+.Infobase = "BITFINANCE"
+
+. = merge(to: ., from: structured, deep: true)
+
+.Date, errEventTimestamp = parse_timestamp(structured.Date, "%Y%m%d%H%M%S")
+.DateLocal = .Date
+.err = err
+

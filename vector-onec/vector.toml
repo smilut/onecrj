@@ -1,0 +1,105 @@
+#vector.toml
+[sources.input_logs]
+  type = "file"
+  include = ['./logs/*.lgp']
+  data_dir =  './test_logs'
+  fingerprint.strategy = "device_and_inode"
+  #ignore_older_secs = 86400 # не читаем файлы старше суток
+  #remove_after_secs = 604800 # удалим файлы недельной давности
+  multiline.timeout_ms = 1000
+  multiline.mode = "halt_before"
+  multiline.start_pattern = ''
+  multiline.condition_pattern = '^\{\d{14},.+?,'
+
+[transforms.remap_logs]
+inputs = ["input_logs"]
+type = "remap"
+file="./vector-onec/transform.vrl"
+
+[transforms.filter_error] 
+  inputs = ["remap_logs"]
+  type = "filter"
+  condition = '.err != null'
+
+[transforms.filter_success] 
+  inputs = ["remap_logs"]
+  type = "filter"
+  condition = '.err == null'
+
+[transforms.parse_msg]
+  type = "lua"
+  version = "2"
+  inputs = ["filter_success"]
+  source = "require 'parse_msg'"
+  hooks.init = "init"
+  hooks.process = "process"
+  hooks.shutdown = "shutdown"
+  timers = [{interval_seconds = 1, handler = "timer_handler"}]
+
+[transforms.preparation_data]
+  type = "lua"
+  version = "2"
+  inputs = ["parse_msg"]
+  source = "require 'transform'"
+  hooks.init = "init"
+  hooks.process = "process"
+  hooks.shutdown = "shutdown"
+  timers = [{interval_seconds = 1, handler = "timer_handler"}]
+
+[sinks.emit_log_sucsess]
+  type = "clickhouse"
+  inputs = ["preparation_data"]
+  endpoint = '''localhost:8123'''
+  auth.strategy = "basic"
+  auth.user = '''default'''
+  auth.password = ''
+  database = '''log_storage'''
+  table = '''simple_onec_log'''
+  skip_unknown_fields = true
+  encoding.timestamp_format = "unix"
+  batch.max_events = 100
+  batch.timeout_secs = 5
+  acknowledgements.enabled = true
+
+[sinks.emit_log_error]
+  type = "clickhouse"
+  inputs = ["filter_error"]
+  endpoint = 'localhost:8123'
+  auth.strategy = "basic"
+  auth.user = 'default'
+  auth.password = ''
+  database = 'log_storage'
+  table = 'onec_log_error'
+  skip_unknown_fields = true
+  encoding.timestamp_format = "unix"
+  batch.max_events = 10
+  batch.timeout_secs = 5
+  acknowledgements.enabled = true
+
+# ----------------------------------
+# Monitoring
+# ----------------------------------
+
+[sources.vector_metrics]
+  type = "internal_metrics"
+
+[sinks.vector_metrics_exporter]
+  type = "prometheus_exporter"
+  inputs = [ "vector_metrics" ]
+  address = '127.0.0.1:9598'
+  default_namespace = "service"
+
+[api]
+  enabled = true
+  address = '127.0.0.1:8686'
+
+# ----------------------------------
+# Debug
+# ----------------------------------
+[sinks.emit_debug_logs] # секция настроек описывающая место назначения
+  #inputs = ["remap_logs"]
+  #inputs = ["parse_msg"]
+  inputs = ["preparation_data"] # Входные данные, результат работы предыдущей секции
+  type = "console" # Тип назначения (в консоль), документация: https://vector.dev/docs/reference/configuration/sinks/
+  encoding.codec = "json" # формат вывода данных
+

@@ -1,0 +1,1 @@
+select top 100 * from log_storage.onec_log

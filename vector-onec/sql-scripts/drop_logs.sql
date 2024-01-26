@@ -1,0 +1,1 @@
+drop TABLE log_storage.simple_onec_log

@@ -1,0 +1,1 @@
+delete from log_storage.simple_onec_log where true == true

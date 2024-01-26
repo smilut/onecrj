@@ -1,0 +1,1 @@
+drop DATABASE onec_jornal
