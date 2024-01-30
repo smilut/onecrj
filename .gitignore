@@ -20,3 +20,5 @@ vector
 vector/**
 **/vector.toml
 vector.toml
+*/vector.toml
+vector-onec/vector.toml
