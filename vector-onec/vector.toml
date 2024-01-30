@@ -1,10 +1,10 @@
 #vector.toml
 [sources.input_logs]
   type = "file"
-  include = ['./logs/*.lgp']
-  data_dir =  './test_logs'
+  include = ['\\s1cebf3\E$\srvinfo\reg_1541\54b9ec5f-796f-443d-accd-9eb740dc095b\1Cv8Log\*.lgp']
+  data_dir = '.\onecrj\vector-onec\logs_data'
   fingerprint.strategy = "device_and_inode"
-  #ignore_older_secs = 86400 # не читаем файлы старше суток
+  ignore_older_secs = 86400 # не читаем файлы старше суток
   #remove_after_secs = 604800 # удалим файлы недельной давности
   multiline.timeout_ms = 1000
   multiline.mode = "halt_before"
@@ -14,7 +14,7 @@
 [transforms.remap_logs]
 inputs = ["input_logs"]
 type = "remap"
-file="./vector-onec/transform.vrl"
+file='.\onecrj\vector-onec\transform.vrl'
 
 [transforms.filter_error] 
   inputs = ["remap_logs"]
@@ -49,10 +49,10 @@ file="./vector-onec/transform.vrl"
 [sinks.emit_log_sucsess]
   type = "clickhouse"
   inputs = ["preparation_data"]
-  endpoint = '''localhost:8123'''
+  endpoint = '''s1cych1:8123'''
   auth.strategy = "basic"
-  auth.user = '''default'''
-  auth.password = ''
+  auth.user = 'default'
+  auth.password = 'Zxxzcvvc234'
   database = '''log_storage'''
   table = '''simple_onec_log'''
   skip_unknown_fields = true
@@ -64,10 +64,10 @@ file="./vector-onec/transform.vrl"
 [sinks.emit_log_error]
   type = "clickhouse"
   inputs = ["filter_error"]
-  endpoint = 'localhost:8123'
+  endpoint = 's1cych1:8123'
   auth.strategy = "basic"
   auth.user = 'default'
-  auth.password = ''
+  auth.password = 'Zxxzcvvc234'
   database = 'log_storage'
   table = 'onec_log_error'
   skip_unknown_fields = true

@@ -356,7 +356,7 @@ function parse_data_and_presentation_R(event, data_descr)
 
     status, result = pcall(replace,data_descr, data_str..",", "")
     if status == true then        
-        event.log.DataPresentation = result
+        event.log.DataPresentation = result:gsub('"','')
     else
         print("ERROR replace 255", data_descr, data_str..",")
         error({result})

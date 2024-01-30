@@ -170,7 +170,7 @@ function process (event, emit)
         status, result = pcall(getDictonaryValue, event.log.Event, "events")
         if status == true then -- проверка на исключение
           if result.status == true then
-            event.log.EventName = result.value
+            event.log.EventName = result.value:gsub('"','')
           end
         else
           print("ERROR Event", result, "input", event.log.Event)
@@ -186,7 +186,7 @@ function process (event, emit)
           if result.status == true then
             local metaObj = split(result.value,",")
             event.log.MetadataUuid = metaObj[1]
-            event.log.MetadataName = metaObj[2]          
+            event.log.MetadataName = metaObj[2]:gsub('"','')          
           end
         else
           print("ERROR Metadata", result, "input", event.log.Metadata)
@@ -203,7 +203,7 @@ function process (event, emit)
             if result.status == true then
               local metaObj = split(result.value,",")
               --event.log.MetadataUuid = metaObj[1]
-              event.log.DataTypeName = metaObj[2]          
+              event.log.DataTypeName = metaObj[2]:gsub('"','')          
             end
           else
             print("ERROR Metadata", result, "input", event.log.Metadata)
