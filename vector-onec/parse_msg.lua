@@ -179,62 +179,10 @@ function split_by_CR(text)
     return msg_str
 end
 
-function replace(word, pattern, str)
-    local result = word:gsub(pattern, str)
-    return result
-end
-
 function isempty(data)
     return data == nil or data == ''
 end
---[[
-function parse_first_line(event, msg_str)
-    if debug == true then
-        print("parse_first_line", "msg_str", msg_str)
-    end
-    -- в 0-строке всегда дата и статус транзакции
-    local data = split_by_comma(msg_str)
-    -- дату и время обрабатываем при при чтении
-    -- сообщения из файла
-    --event.log.Date = replace(data[0], "{", "")
-    --event.log.DateLocal = event.log.Date
-    event.log.TransactionStatus = data[1]
-end
 
-function parse_second_line(event, msg_str)
-    if debug == true then
-        print("parse_second_line", "msg_str", msg_str)
-    end
-    -- в 1-строке всегда:
-    --      Транзакция, Пользователь, Компьютер
-    --      Приложение, Соединение, Событие, Важность
-    -- могут быть еще комментарий и индекс метаданных, 
-    -- но, т.к. в комментарий может быть записана 
-    -- произвольная информация, то определение 
-    -- значения этих полей необходимо выполнять отдельно
-
-    local data = split_by_comma(msg_str)
-    local data_count = #data
-    event.log.TransactionID = data[0]..","..data[1]
-    event.log.User          = data[2]
-    event.log.Computer      = data[3]
-    event.log.Application   = data[4]
-    event.log.Connection    = data[5]
-    event.log.Event         = data[6]
-    event.log.Level         = data[7]
-
-    local unparsed = data[8]
-    for i = 9, data_count do
-        unparsed = unparsed..","..data[i]
-    end
-
-    if debug == true then
-        print("parse_second_line", "unparsed", unparsed)
-    end
-
-    return unparsed
-end
---]]
 function parse_pre_last_line(event, msg_str)
     if debug == true then
         print("parse_pre_last_line", "msg_str", msg_str)
@@ -345,22 +293,11 @@ function parse_data_and_presentation_R(event, data_descr)
     local obj_data = split_by_colon(data_array[1])
     --print("------{R} obj ", obj_data[0], obj_data[1])
     event.log.Data      = data_str
-    event.log.DataType  = obj_data[0]
-    local status, result = pcall(replace,obj_data[1], "}", "")
-    if status == true then        
-        event.log.DataRef = result
-    else
-        print("ERROR replace 248", obj_data[1])
-        error({result})
-    end
+    event.log.DataType  = obj_data[0]    
+    event.log.DataRef = obj_data[1]:gsub('}', '')
 
-    status, result = pcall(replace,data_descr, data_str..",", "")
-    if status == true then        
-        event.log.DataPresentation = result:gsub('"','')
-    else
-        print("ERROR replace 255", data_descr, data_str..",")
-        error({result})
-    end
+    result = data_descr:gsub(data_str..",", "")
+    event.log.DataPresentation = result:gsub('"','')
 end
 
 function parse_data_and_presentation_U(event, data_descr)
@@ -387,14 +324,7 @@ function parse_data_and_presentation_SnP(event, msg_str)
         -- набираем строку описания данных
         if i == count then
             -- отрежим представление данных
-            local status, result = pcall(replace, str, '},""$', "}")
-            if status == true then
-                str = result
-                event_data = str
-            else
-                print("ERROR replace 288", str)
-                error({result})
-            end            
+            event_data = str:gsub('},""$', '}')
         else
             event_data = str.."\n\r"..event_data
         end
@@ -433,40 +363,33 @@ function parse_comment_and_metadata(event, msg_str, metadata_index)
         print("b) parse_comment_and_metadata", "data_str", data_str)
     end
 
-    local status, result = pcall(replace, data_str, ",", "")
-    if status ~= true then        
-        print("ERROR replace 438", data_str, data_descr, result)
-        error({result})
-    end
-
-    local status, result = pcall(replace, result, "%s", "")
+    local result = data_str:gsub(',', '')
+    result = result:gsub('%s', '')
+    event.log.Metadata = result
     if debug == true then
         print("parse_comment_and_metadata", "result", result, ".")
     end
-    event.log.Metadata = result
 
     -- удалим данные ID метаданных
-    local status, result = pcall(replace, msg_str[metadata_index], data_str, "")
-    if status == true then        
-        msg_str[metadata_index] = result
-    else
-        print("ERROR replace 453")
-        error({result})
-    end
+    msg_str[metadata_index] = msg_str[metadata_index]:gsub(data_str, '')
 
     -- собираем данные комментария
+    if debug == true then
+        print("parse_comment_and_metadata", "msg_str до чистки", msg_str[metadata_index])
+        print("parse_comment_and_metadata", "msg_str до чистки", msg_str[0])
+    end
+    -- отрежим ид метаданных и обрамляющие комментарий кавычки
+    msg_str[metadata_index] = msg_str[metadata_index]:gsub(',%d+,$', '')
+    msg_str[metadata_index] = msg_str[metadata_index]:gsub('"$', '')
+    msg_str[0] = msg_str[0]:gsub('^"', '')
+    if debug == true then
+        print("parse_comment_and_metadata", "msg_str после чистки", msg_str[metadata_index])
+        print("parse_comment_and_metadata", "msg_str после чистки", msg_str[0])
+    end
     for i = metadata_index, 0, -1 do
         local str = msg_str[i]
         -- набираем строку комментария
         if i == metadata_index then
-            -- отрежим ид метаданных
-            status, result = pcall(replace, str, ",%d+,$", "")
-            if status == true then
-                str = result
-            else
-                print("ERROR replace 467", str, result)
-                error({result})
-            end
             event_comment = str
         else
             event_comment = str.."\n\r"..event_comment
