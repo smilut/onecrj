@@ -41,6 +41,6 @@ if err != null {
 . = merge(to: ., from: structured, deep: true)
 
 .Date, errEventTimestamp = parse_timestamp(structured.Date, "%Y%m%d%H%M%S")
-.DateLocal = .Date
+
 .err = err
 
